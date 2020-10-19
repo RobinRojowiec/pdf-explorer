@@ -9,11 +9,13 @@ Date: 18.10.2020
 """
 import os
 
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import spacy
 import streamlit as st
 import textract
+from matplotlib.colors import to_hex
 from sklearn.cluster import DBSCAN
 from sklearn.manifold import TSNE
 
@@ -107,16 +109,24 @@ if uploaded_file is not None:
                 "Words: " + str(len(words)) + ", Clustered Words: " + str(cluster_counter) + ", Noise Samples: " + str(
                     noise_counter) + ", Clusters: " + str(len(num_clusters)))
 
+            cmap = matplotlib.cm.get_cmap('viridis')
             fig = plt.figure(figsize=(16, 10))
-            plt.scatter(tsne_results[:, 0], tsne_results[:, 1], c=list(labels))
+            plt.scatter(tsne_results[:, 0], tsne_results[:, 1], c=list(labels), vmin=0, vmax=len(num_clusters),
+                        cmap=cmap)
             st.pyplot(fig)
 
             st.header("Cluster samples")
 
+            # get colors
+            norm = matplotlib.colors.Normalize(vmin=0.0, vmax=len(num_clusters))
+
             cluster_count = 1
             for cluster_id in range(len(clusters)):
                 if len(clusters[cluster_id]) > 0:
-                    st.subheader("Cluster " + str(cluster_count))
+                    color = to_hex(cmap(norm(cluster_count)))
+
+                    st.markdown(("<h3 style='color:%s'>Cluster " + str(cluster_count) + "</h3>") % color,
+                                unsafe_allow_html=True)
                     st.markdown(",".join([" " + word for word in clusters[cluster_id]]))
                     cluster_count += 1
 
