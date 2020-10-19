@@ -8,16 +8,19 @@ Date: 18.10.2020
 
 """
 import os
+from collections import defaultdict
 
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import spacy
 import streamlit as st
 import textract
 from matplotlib.colors import to_hex
 from sklearn.cluster import DBSCAN
 from sklearn.manifold import TSNE
+from wordfreq import zipf_frequency
 
 # prepare dir
 tmp_dir = "tmp/"
@@ -35,14 +38,18 @@ def clear():
         os.remove(tmp_dir + filename)
 
 
+st.subheader("Upload PDF Document")
+
 # Select language
 option = st.selectbox('Select Language', ('German', 'English'))
 
 if option == "German":
     nlp_model = "de_core_news_sm"
+    lang_code = "de"
 else:
     # English default case
     nlp_model = "en_core_web_sm"
+    lang_code = "en"
 
 # load nlp model
 nlp = spacy.load(nlp_model)
@@ -70,17 +77,57 @@ if uploaded_file is not None:
 
         words = []
         vectors = []
+        word_counter = defaultdict(int)
         for token in analyzed:
             lemma = token.lemma_
-            if lemma not in words and token.is_alpha and not token.is_stop:
-                words.append(lemma)
-                vectors.append(token.vector)
+            if not token.is_stop and token.is_alpha:
+                if lemma not in words:
+                    words.append(lemma)
+                    vectors.append(token.vector)
+
+                # count word occurence
+                word_counter[lemma] += 1
+
             my_bar.progress(token_counter / max_len)
             token_counter += 1.0 / max_len
         my_bar.progress(1.0)
 
+        st.subheader("Word Frequency")
+
+        top_k_words = 1000
+
+        # sort and cut by frequency of each word in document
+        sorted_list_doc_freqs = sorted(word_counter.items(), key=lambda x: x[1])
+        sorted_list_doc_freqs = sorted_list_doc_freqs[:top_k_words]
+
+        # get zipf frequency
+        sorted_list_zipf_freqs = []
+        for sorted_pair in sorted_list_doc_freqs:
+            zipf_freq = zipf_frequency(sorted_pair[0], lang_code)  # log of relative frequency
+            sorted_list_zipf_freqs.append([sorted_pair[0], zipf_freq])
+        sorted_list_zipf_freqs = sorted(sorted_list_zipf_freqs, key=lambda x: x[1])
+
+        # combine rank global and document
+        combined_ranks = defaultdict(int)
+        for i in range(len(sorted_list_doc_freqs)):
+            combined_ranks[sorted_list_doc_freqs[i][0]] += i + 1
+
+        for i in range(len(sorted_list_zipf_freqs)):
+            combined_ranks[sorted_list_zipf_freqs[i][0]] += i + 1
+
+        word_df = pd.DataFrame()
+        for word_freq_pair in sorted_list_doc_freqs:
+            word = word_freq_pair[0]
+            word_df = word_df.append({"Word": word, "Doc-Freq": word_freq_pair[1],
+                                      "Global Freq": zipf_frequency(word, lang_code),
+                                      "Combined Ranks": combined_ranks[word]}, ignore_index=True)
+
+        st.dataframe(word_df)
+
+        st.subheader("Clustering Words")
+
         with st.spinner('Clustering...'):
-            eps = st.slider("Maximum Vector-Distance:", 0.01, 10.0)
+            eps = st.slider("Maximum Vector-Distance:", 0.01, 10.0, value=1.0)
             min_samples = st.slider("Minimum Samples per Cluster:", 2, 100)
 
             X = np.array(vectors)
