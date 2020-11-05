@@ -68,6 +68,29 @@ if uploaded_file is not None:
             ent_df = ent_df.append({"Entity": ent.text, "Label": ent.label_}, ignore_index=True)
         st.dataframe(ent_df)
 
+        st.header("Words")
+        interesting_pos_tags = st.multiselect("Filter by POS-Tag",
+                                              [
+                                                  "ADP",
+                                                  "ADV",
+                                                  "AUX",
+                                                  "CONJ",
+                                                  "CCONJ",
+                                                  "DET",
+                                                  "INTJ",
+                                                  "NOUN",
+                                                  "NUM",
+                                                  "PART",
+                                                  "PRON",
+                                                  "PROPN",
+                                                  "PUNCT",
+                                                  "SCONJ",
+                                                  "SYM",
+                                                  "VERB",
+                                                  "X",
+                                                  "SPACE"], default=[]
+                                              )
+
         max_len = len(analyzed)
         token_counter = 0
 
@@ -75,16 +98,18 @@ if uploaded_file is not None:
         vectors = []
         word_counter = defaultdict(int)
         pos_tag_dict = dict()
+
         for token in analyzed:
             lemma = token.lemma_
-            if not token.is_stop and token.is_alpha:
-                if lemma not in words:
-                    pos_tag_dict[lemma] = token.pos_
-                    words.append(lemma)
-                    vectors.append(token.vector)
+            if (len(interesting_pos_tags) > 0 and token.pos_ in interesting_pos_tags) or len(interesting_pos_tags) == 0:
+                if not token.is_stop and token.is_alpha:
+                    if lemma not in words:
+                        pos_tag_dict[lemma] = token.pos_
+                        words.append(lemma)
+                        vectors.append(token.vector)
 
-                # count word occurence
-                word_counter[lemma] += 1
+                    # count word occurence
+                    word_counter[lemma] += 1
 
             my_bar.progress(token_counter / max_len)
             token_counter += 1.0 / max_len
