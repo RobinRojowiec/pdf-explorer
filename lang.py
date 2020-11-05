@@ -8,7 +8,6 @@ Date: 05.11.2020
 
 """
 import spacy
-from bpemb import BPEmb
 
 
 def get_lang_code(language: str):
@@ -34,6 +33,4 @@ def get_models_for_language(language: str, token_vector_dims=50):
         raise Exception("Language not supported: %s" % lang_code)
 
     nlp_model = spacy.load(spacy_model_name)
-    tokenizer_model = BPEmb(lang=lang_code, dim=token_vector_dims)
-
-    return lang_code, nlp_model, tokenizer_model
+    return lang_code, nlp_model

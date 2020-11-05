@@ -11,8 +11,6 @@ import os
 
 import streamlit as st
 import textract
-from bpemb import BPEmb
-
 
 @st.cache
 def extract_text(file_path):
@@ -23,12 +21,3 @@ def extract_text(file_path):
     else:
         return None
 
-
-@st.cache
-def detokenize(bpemb: BPEmb, subwords: []):
-    return bpemb.decode(subwords)
-
-
-@st.cache
-def tokenize_bpemb():
-    pass

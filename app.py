@@ -42,7 +42,7 @@ st.subheader("Upload PDF Document")
 # Select language
 option = st.selectbox('Select Language', ('German', 'English'))
 
-lang_code, nlp, tokenizer = get_models_for_language(option)
+lang_code, nlp = get_models_for_language(option)
 analyzed = None
 
 uploaded_file = st.file_uploader("Choose a file", type=['pdf', 'txt'])
